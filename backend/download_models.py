@@ -10,7 +10,7 @@ MODELS = {
 
     "best_tuned_model_f1.keras":
     "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/best_tuned_model_f1.keras",
-    "ResNet50V2_bestversion":
+    "ResNet50V2_bestversion.keras":
     "https://huggingface.co/asadarif23088/cis_classifier_mymodel/resolve/main/ResNet50V2_bestversion.keras"
 }
 
