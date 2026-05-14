@@ -64,8 +64,7 @@ const MODELS: Record<
 };
 
 // Base URL — swap comment to point at your deployed backend
-const API_BASE = "http://localhost:8000";
-// const API_BASE = import.meta.env.VITE_API_URL ?? "https://airy-strength-production-2155.up.railway.app";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 type Result = { label: "CIS" | "Non-CIS"; confidence: number };
 
