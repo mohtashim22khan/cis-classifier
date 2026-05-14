@@ -10,6 +10,17 @@ MODEL_URLS = {
 
 os.makedirs("models", exist_ok=True)
 
+# Download ResNet at startup (but don't load into memory yet)
+resnet_filepath = "models/ResNet50V2_bestversion.keras"
+if not os.path.exists(resnet_filepath):
+    print("Downloading ResNet50V2...")
+    with requests.get(MODEL_URLS["ResNet50V2_bestversion.keras"], stream=True) as r:
+        r.raise_for_status()
+        with open(resnet_filepath, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    print("ResNet50V2 downloaded.")
+
 _models = {}
 
 def get_model(filename, **kwargs):
