@@ -27,7 +27,7 @@ mobilenet_model = tf.keras.models.load_model(
 
 # Placeholder — swap with real model when ready
 efficientnet_model = tf.keras.models.load_model("models/EfficientNetB0_finetuned_final.keras")
-# vit_model          = tf.keras.models.load_model("models/vit.keras")
+# custom_CNN_model   = tf.keras.models.load_model("models/best_tuned_model_f1.keras")
 
 
 #── Shared preprocessing ──────────────────────────────────────────────────────
@@ -76,5 +76,9 @@ async def predict_efficientnet(file: UploadFile = File(...)):
 
 @app.post("/predict/vit")
 async def predict_vit(file: UploadFile = File(...)):
+    # contents = await file.read()
+    # arr = preprocess(contents)
+    # prob = custom_CNN_model.predict(arr)[0][0]
+    # return make_result(prob)
     # Not yet integrated — return 501 so frontend shows a clear error
     raise HTTPException(status_code=501, detail="Vision Transformer not yet integrated.")

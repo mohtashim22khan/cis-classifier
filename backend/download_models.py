@@ -7,6 +7,9 @@ MODELS = {
 
     "EfficientNetB0_finetuned_final.keras":
     "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/EfficientNetB0_finetuned_final.keras",
+
+    "best_tuned_model_f1.keras":
+    "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/best_tuned_model_f1.keras"
 }
 
 # Create models directory if not exists
