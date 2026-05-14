@@ -4,30 +4,39 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import io
+import tensorflow.keras.backend as K
+from tensorflow.keras.models import load_model
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # "http://localhost:5173",
         "https://cis-classifier.vercel.app/",
-    #     "https://id-preview--b398425f-ae76-4194-8a53-beb7aaf8b5c7.lovable.app",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Redefine the custom metric
+@tf.keras.utils.register_keras_serializable()
+def f1_score(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+
 # ── Load models at startup ────────────────────────────────────────────────────
 # Add future models here as you integrate them.
 mobilenet_model = tf.keras.models.load_model(
     "models/MobileNetV2_finetuned_final.keras",
-    safe_mode=False   # Required due to Lambda layer in architecture
-)
-
-# Placeholder — swap with real model when ready
+    safe_mode=False)   # Required due to Lambda layer in architecture)
 efficientnet_model = tf.keras.models.load_model("models/EfficientNetB0_finetuned_final.keras")
-# custom_CNN_model   = tf.keras.models.load_model("models/best_tuned_model_f1.keras")
+custom_CNN_model   = tf.keras.models.load_model("models/best_tuned_model_f1.keras",)
+resnetv2_model = tf.keras.models.load_model("models/ResNet50V2_bestversion.keras",
+                                            custom_objects={"F1Score": f1_score})
 
 
 #── Shared preprocessing ──────────────────────────────────────────────────────
@@ -74,11 +83,18 @@ async def predict_efficientnet(file: UploadFile = File(...)):
     # raise HTTPException(status_code=501, detail="EfficientNet not yet integrated.")
 
 
-@app.post("/predict/vit")
+@app.post("/predict/CNN")
 async def predict_vit(file: UploadFile = File(...)):
-    # contents = await file.read()
-    # arr = preprocess(contents)
-    # prob = custom_CNN_model.predict(arr)[0][0]
-    # return make_result(prob)
+    contents = await file.read()
+    arr = preprocess(contents)
+    prob = custom_CNN_model.predict(arr)[0][0]
+    return make_result(prob)
     # Not yet integrated — return 501 so frontend shows a clear error
-    raise HTTPException(status_code=501, detail="Vision Transformer not yet integrated.")
+    # raise HTTPException(status_code=501, detail="Vision Transformer not yet integrated.")
+
+@app.post("/predict/resnetv2")
+async def predict_resnetv2(file: UploadFile = File(...)):
+    contents = await file.read()
+    arr = preprocess(contents)
+    prob = resnetv2_model.predict(arr)[0][0]
+    return make_result(prob)

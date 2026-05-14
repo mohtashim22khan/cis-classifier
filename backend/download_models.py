@@ -9,7 +9,9 @@ MODELS = {
     "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/EfficientNetB0_finetuned_final.keras",
 
     "best_tuned_model_f1.keras":
-    "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/best_tuned_model_f1.keras"
+    "https://huggingface.co/mohtashim22khan123/cis-classifier_models/resolve/main/best_tuned_model_f1.keras",
+    "ResNet50V2_bestversion":
+    "https://huggingface.co/asadarif23088/cis_classifier_mymodel/resolve/main/ResNet50V2_bestversion.keras"
 }
 
 # Create models directory if not exists

@@ -16,9 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // ── Model registry ────────────────────────────────────────────────────────────
-// Add future models here — the UI will pick them up automatically.
-// `endpoint` is the POST route on your FastAPI backend for that model.
-type ModelKey = "mobilenet" | "efficientnet" | "vit";
+type ModelKey = "mobilenet" | "efficientnet" | "CNN" | "resnetv2";
 
 const MODELS: Record<
   ModelKey,
@@ -28,7 +26,7 @@ const MODELS: Record<
     icon: typeof Brain;
     accuracy: string;
     desc: string;
-    endpoint: string; // FastAPI route for this model
+    endpoint: string;
   }
 > = {
   mobilenet: {
@@ -40,26 +38,35 @@ const MODELS: Record<
     endpoint: "/predict/mobilenet",
   },
   efficientnet: {
-    name: "EfficientNet-B3",
-    tag: "Coming Soon",
+    name: "EfficientNet-B0",
+    tag: "Fine-Tuned",
     icon: Zap,
     accuracy: "–",
-    desc: "Best accuracy/speed tradeoff. Integration in progress.",
+    desc: "Fine-tuned EfficientNetB0 — best accuracy/speed tradeoff.",
     endpoint: "/predict/efficientnet",
   },
-  vit: {
-    name: "Vision Transformer",
-    tag: "Coming Soon",
+  CNN: {
+    name: "Custom CNN",
+    tag: "Fine-Tuned",
     icon: Brain,
     accuracy: "–",
-    desc: "Transformer-based global attention model. Integration in progress.",
-    endpoint: "/predict/vit",
+    desc: "Best-tuned custom CNN model optimised for F1 score.",
+    endpoint: "/predict/CNN",
+  },
+  resnetv2: {
+    name: "ResNet50V2",
+    tag: "Fine-Tuned",
+    icon: Zap,
+    accuracy: "–",
+    desc: "Fine-tuned ResNet50V2 with skip connections for deeper feature extraction.",
+    endpoint: "/predict/resnetv2",
   },
 };
 
-// Base URL — reads from Vite env variable, falls back to localhost for dev
-//const API_BASE = "http://localhost:8000";
-const API_BASE = import.meta.env.VITE_API_URL ?? "https://airy-strength-production-2155.up.railway.app";
+// Base URL — swap comment to point at your deployed backend
+const API_BASE = "http://localhost:8000";
+// const API_BASE = import.meta.env.VITE_API_URL ?? "https://airy-strength-production-2155.up.railway.app";
+
 type Result = { label: "CIS" | "Non-CIS"; confidence: number };
 
 // ── API call ──────────────────────────────────────────────────────────────────
@@ -77,7 +84,6 @@ async function callPredict(file: File, modelKey: ModelKey): Promise<Result> {
     throw new Error(err || `Server error ${res.status}`);
   }
 
-  // Backend returns { label: "CIS" | "Non-CIS", confidence: 0.0–1.0 }
   const data: Result = await res.json();
   return data;
 }
@@ -105,12 +111,6 @@ export function Classifier() {
   const runPrediction = async () => {
     if (!file) return;
 
-    // Block prediction for models not yet integrated
-    if (model !== "mobilenet") {
-      setError(`${MODELS[model].name} is not yet integrated. Please select MobileNetV2.`);
-      return;
-    }
-
     setLoading(true);
     setResult(null);
     setError(null);
@@ -120,7 +120,9 @@ export function Classifier() {
       setResult(prediction);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Prediction failed. Make sure the backend is running.",
+        err instanceof Error
+          ? err.message
+          : "Prediction failed. Make sure the backend is running.",
       );
     } finally {
       setLoading(false);
@@ -207,7 +209,6 @@ export function Classifier() {
               const m = MODELS[key];
               const Icon = m.icon;
               const active = model === key;
-              const comingSoon = m.tag === "Coming Soon";
 
               return (
                 <button
@@ -222,7 +223,6 @@ export function Classifier() {
                     active
                       ? "border-primary bg-[var(--gradient-soft)] shadow-[var(--shadow-soft)]"
                       : "border-border hover:border-primary/40 hover:bg-muted/60",
-                    comingSoon && "opacity-60",
                   )}
                 >
                   <div
@@ -269,7 +269,7 @@ export function Classifier() {
           </Card>
         )}
 
-        {/* Result card — same design as original */}
+        {/* Result card */}
         {result && (
           <Card className="overflow-hidden border-2 p-6 shadow-[var(--shadow-soft)] animate-in fade-in slide-in-from-bottom-3">
             <div className="flex items-start gap-4">
