@@ -10,8 +10,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "https://cis-recognizer.lovable.app",
+        # "http://localhost:5173",
+        "https://cis-classifier.vercel.app/",
     #     "https://id-preview--b398425f-ae76-4194-8a53-beb7aaf8b5c7.lovable.app",
     ],
     allow_methods=["*"],

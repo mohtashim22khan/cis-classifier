@@ -58,8 +58,8 @@ const MODELS: Record<
 };
 
 // Base URL — reads from Vite env variable, falls back to localhost for dev
-const API_BASE = "http://localhost:8000";
-// import.meta.env.VITE_API_URL ?? "https://airy-strength-production-2155.up.railway.app";
+//const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "https://airy-strength-production-2155.up.railway.app";
 type Result = { label: "CIS" | "Non-CIS"; confidence: number };
 
 // ── API call ──────────────────────────────────────────────────────────────────
