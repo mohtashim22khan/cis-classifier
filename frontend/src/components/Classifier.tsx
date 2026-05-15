@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Upload,
   Sparkles,
@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +32,7 @@ const MODELS: Record<
     name: "MobileNetV2",
     tag: "Fine-Tuned",
     icon: Layers,
-    accuracy: "93.2%",
+    accuracy: "",
     desc: "Fine-tuned MobileNetV2 with frozen backbone + custom head.",
     endpoint: "/predict/mobilenet",
   },
@@ -41,7 +40,7 @@ const MODELS: Record<
     name: "EfficientNet-B0",
     tag: "Fine-Tuned",
     icon: Zap,
-    accuracy: "–",
+    accuracy: "",
     desc: "Fine-tuned EfficientNetB0 — best accuracy/speed tradeoff.",
     endpoint: "/predict/efficientnet",
   },
@@ -49,7 +48,7 @@ const MODELS: Record<
     name: "Custom CNN",
     tag: "Fine-Tuned",
     icon: Brain,
-    accuracy: "–",
+    accuracy: "",
     desc: "Best-tuned custom CNN model optimised for F1 score.",
     endpoint: "/predict/CNN",
   },
@@ -57,13 +56,13 @@ const MODELS: Record<
     name: "ResNet50V2",
     tag: "Fine-Tuned",
     icon: Zap,
-    accuracy: "–",
+    accuracy: "",
     desc: "Fine-tuned ResNet50V2 with skip connections for deeper feature extraction.",
     endpoint: "/predict/resnetv2",
   },
 };
 
-// Base URL — swap comment to point at your deployed backend
+// Base URL — reads from Vite env variable
 const API_BASE = import.meta.env.VITE_API_URL;
 
 type Result = { label: "CIS" | "Non-CIS"; confidence: number };
@@ -96,7 +95,27 @@ export function Classifier() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [meter, setMeter] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Animate the confidence meter from 0 → target whenever a new result lands
+  useEffect(() => {
+    if (!result) { setMeter(0); return; }
+    setMeter(0);
+    const target = result.confidence * 100;
+    const start = performance.now();
+    const duration = 1100;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setMeter(target * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [result]);
 
   const handleFile = (f: File | null) => {
     if (!f) return;
@@ -121,7 +140,7 @@ export function Classifier() {
       setError(
         err instanceof Error
           ? err.message
-          : "Prediction failed. Make sure the backend is running.",
+          : "Prediction failed. Make sure the backend is running."
       );
     } finally {
       setLoading(false);
@@ -152,10 +171,7 @@ export function Classifier() {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -167,7 +183,7 @@ export function Classifier() {
               "hover:border-primary hover:bg-[var(--gradient-soft)]",
               dragOver
                 ? "border-primary bg-[var(--gradient-soft)] scale-[1.01]"
-                : "border-border bg-muted/40",
+                : "border-border bg-muted/40"
             )}
           >
             <div className="rounded-2xl bg-[var(--gradient-hero)] p-4 text-primary-foreground shadow-[var(--shadow-glow)] transition-transform group-hover:scale-110">
@@ -212,34 +228,26 @@ export function Classifier() {
               return (
                 <button
                   key={key}
-                  onClick={() => {
-                    setModel(key);
-                    setResult(null);
-                    setError(null);
-                  }}
+                  onClick={() => { setModel(key); setResult(null); setError(null); }}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all",
+                    "group flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all duration-300",
                     active
-                      ? "border-primary bg-[var(--gradient-soft)] shadow-[var(--shadow-soft)]"
-                      : "border-border hover:border-primary/40 hover:bg-muted/60",
+                      ? "border-primary bg-[var(--gradient-soft)] shadow-[var(--shadow-glow)] scale-[1.02]"
+                      : "border-border hover:border-primary/40 hover:bg-muted/60 hover:translate-x-1"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "rounded-lg p-2",
-                      active
-                        ? "bg-[var(--gradient-hero)] text-primary-foreground"
-                        : "bg-muted text-foreground",
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
+                  <div className={cn(
+                    "rounded-lg p-2 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6",
+                    active
+                      ? "bg-[var(--gradient-hero)] text-primary-foreground animate-gradient-pan"
+                      : "bg-muted text-foreground"
+                  )}>
+                    <Icon className={cn("h-5 w-5", active && "animate-pulse")} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{m.name}</span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {m.tag}
-                      </Badge>
+                      <Badge variant="secondary" className="text-[10px]">{m.tag}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{m.desc}</p>
                   </div>
@@ -254,10 +262,10 @@ export function Classifier() {
         <Button
           onClick={runPrediction}
           disabled={!file || loading}
-          className="h-14 gap-2 rounded-2xl text-base font-semibold text-primary-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
-          style={{ background: "var(--gradient-hero)" }}
+          className="h-14 gap-2 rounded-2xl text-base font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-transform animate-gradient-pan"
+          style={{ background: "var(--gradient-hero)", backgroundSize: "200% 200%" }}
         >
-          <Sparkles className={cn("h-5 w-5", loading && "animate-spin")} />
+          <Sparkles className={cn("h-5 w-5", loading ? "animate-spin" : "animate-pulse")} />
           {loading ? "Analyzing..." : "Classify image"}
         </Button>
 
@@ -270,10 +278,13 @@ export function Classifier() {
 
         {/* Result card */}
         {result && (
-          <Card className="overflow-hidden border-2 p-6 shadow-[var(--shadow-soft)] animate-in fade-in slide-in-from-bottom-3">
+          <Card
+            key={`${result.label}-${result.confidence}`}
+            className="overflow-hidden border-2 p-6 shadow-[var(--shadow-glow)] animate-pop-in"
+          >
             <div className="flex items-start gap-4">
               <div
-                className="rounded-2xl p-3 text-white shadow-lg"
+                className="rounded-2xl p-3 text-white shadow-lg animate-pop-in"
                 style={{
                   background:
                     result.label === "CIS"
@@ -292,18 +303,31 @@ export function Classifier() {
                 <h3 className="text-3xl font-bold tracking-tight">
                   {result.label === "CIS" ? "CIS detected" : "Non-CIS"}
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground">via {MODELS[model].name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  via {MODELS[model].name}
+                </p>
               </div>
             </div>
 
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Confidence</span>
-                <span className="font-mono font-semibold">
-                  {(result.confidence * 100).toFixed(1)}%
+                <span className="font-mono font-semibold tabular-nums">
+                  {meter.toFixed(1)}%
                 </span>
               </div>
-              <Progress value={result.confidence * 100} className="h-3" />
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="shimmer-overlay h-full rounded-full transition-[width] duration-100 ease-out"
+                  style={{
+                    width: `${meter}%`,
+                    background:
+                      result.label === "CIS"
+                        ? "linear-gradient(90deg, oklch(0.72 0.18 155), oklch(0.62 0.2 175))"
+                        : "linear-gradient(90deg, oklch(0.7 0.2 30), oklch(0.65 0.24 25))",
+                  }}
+                />
+              </div>
             </div>
           </Card>
         )}
