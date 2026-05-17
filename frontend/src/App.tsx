@@ -111,7 +111,7 @@ export default function App() {
               </div>
               <div className="hover-lift shimmer-overlay rounded-2xl p-4 text-white shadow-[var(--shadow-soft)] animate-gradient-pan"
                    style={{ background: "linear-gradient(135deg, oklch(0.82 0.17 80), oklch(0.7 0.2 30))", animationDelay: "1s" }}>
-                <p className="text-2xl font-bold">93.48%</p>
+                <p className="text-2xl font-bold">96.04%</p>
                 <p className="text-xs opacity-90">Best accuracy</p>
               </div>
               <div className="hover-lift shimmer-overlay rounded-2xl p-4 text-white shadow-[var(--shadow-soft)] animate-gradient-pan"
