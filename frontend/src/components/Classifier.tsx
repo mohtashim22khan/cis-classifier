@@ -8,6 +8,8 @@ import {
   Brain,
   Zap,
   Layers,
+  Camera,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -96,7 +98,60 @@ export function Classifier() {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [meter, setMeter] = useState(0);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  };
+
+  const openCamera = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+      // Attach stream after the <video> mounts
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Camera access denied: ${err.message}`
+          : "Could not access camera."
+      );
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const f = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+      handleFile(f);
+      stopCamera();
+    }, "image/jpeg", 0.92);
+  };
+
+  useEffect(() => () => stopCamera(), []);
 
   // Animate the confidence meter from 0 → target whenever a new result lands
   useEffect(() => {
@@ -167,33 +222,75 @@ export function Classifier() {
           )}
         </div>
 
-        {!preview ? (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              handleFile(e.dataTransfer.files?.[0] ?? null);
-            }}
-            className={cn(
-              "group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-12 transition-all",
-              "hover:border-primary hover:bg-[var(--gradient-soft)]",
-              dragOver
-                ? "border-primary bg-[var(--gradient-soft)] scale-[1.01]"
-                : "border-border bg-muted/40"
-            )}
-          >
-            <div className="rounded-2xl bg-[var(--gradient-hero)] p-4 text-primary-foreground shadow-[var(--shadow-glow)] transition-transform group-hover:scale-110">
-              <Upload className="h-7 w-7" />
+        {cameraOpen ? (
+          <div className="relative overflow-hidden rounded-2xl border bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="h-80 w-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={stopCamera}
+              className="absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white backdrop-blur transition hover:bg-black/80"
+              aria-label="Close camera"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="absolute inset-x-0 bottom-3 flex justify-center">
+              <Button
+                onClick={capturePhoto}
+                className="gap-2 rounded-full px-5 text-primary-foreground shadow-[var(--shadow-glow)]"
+                style={{ background: "var(--gradient-hero)" }}
+              >
+                <Camera className="h-4 w-4" /> Capture
+              </Button>
             </div>
-            <div className="text-center">
-              <p className="font-medium text-foreground">Drop your image here</p>
-              <p className="text-sm text-muted-foreground">or click to browse · PNG, JPG, WEBP</p>
+          </div>
+        ) : !preview ? (
+          <>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                handleFile(e.dataTransfer.files?.[0] ?? null);
+              }}
+              className={cn(
+                "group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-12 transition-all",
+                "hover:border-primary hover:bg-[var(--gradient-soft)]",
+                dragOver
+                  ? "border-primary bg-[var(--gradient-soft)] scale-[1.01]"
+                  : "border-border bg-muted/40"
+              )}
+            >
+              <div className="rounded-2xl bg-[var(--gradient-hero)] p-4 text-primary-foreground shadow-[var(--shadow-glow)] transition-transform group-hover:scale-110">
+                <Upload className="h-7 w-7" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-foreground">Drop your image here</p>
+                <p className="text-sm text-muted-foreground">or click to browse · PNG, JPG, WEBP</p>
+              </div>
+            </button>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">or</span>
+              <div className="h-px flex-1 bg-border" />
             </div>
-          </button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openCamera}
+              className="mt-3 w-full gap-2 rounded-xl border-2 hover:border-primary hover:bg-[var(--gradient-soft)]"
+            >
+              <Camera className="h-4 w-4" /> Use live camera
+            </Button>
+          </>
         ) : (
           <div className="overflow-hidden rounded-2xl border bg-muted">
             <img src={preview} alt="upload preview" className="h-80 w-full object-contain" />
