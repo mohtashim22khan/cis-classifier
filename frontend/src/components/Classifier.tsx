@@ -65,7 +65,8 @@ const MODELS: Record<
 };
 
 // Base URL — reads from Vite env variable
-const API_BASE = import.meta.env.VITE_API_URL;
+const API_BASE = "http://localhost:8000"; // Default fallback
+// const API_BASE = import.meta.env.VITE_API_URL;
 
 type Result = { label: "CIS" | "Non-CIS"; confidence: number };
 

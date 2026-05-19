@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://cis-classifier.vercel.app"],
+    allow_origins=["https://cis-classifier.vercel.app","http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -64,6 +64,14 @@ MODEL_KWARGS = {
     "ResNet50V2_bestversion.keras": {},
 }
 
+# Per-model classification thresholds (tuned per training evaluation)
+MODEL_THRESHOLDS = {
+    "MobileNetV2_finetuned_final.keras": 0.35,
+    "EfficientNetB0_finetuned_final.keras": 0.35,
+    "best_tuned_model_f1.keras": 0.50,
+    "ResNet50V2_bestversion.keras": 0.50,
+}
+
 os.makedirs("models", exist_ok=True)
 _models = {}
 
@@ -85,7 +93,8 @@ def preprocess(file_bytes: bytes) -> np.ndarray:
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-def make_result(prob: float, threshold: float = 0.35) -> dict:
+def make_result(prob: float, filename: str) -> dict:
+    threshold = MODEL_THRESHOLDS[filename]
     label = "CIS" if prob > threshold else "Non-CIS"
     return {"label": label, "confidence": round(float(prob), 4)}
 
@@ -96,24 +105,28 @@ def health():
 
 @app.post("/predict/mobilenet")
 async def predict_mobilenet(file: UploadFile = File(...)):
+    filename = "MobileNetV2_finetuned_final.keras"
     contents = await file.read()
-    prob = get_model("MobileNetV2_finetuned_final.keras").predict(preprocess(contents))[0][0]
-    return make_result(prob)
+    prob = get_model(filename).predict(preprocess(contents))[0][0]
+    return make_result(prob, filename)
 
 @app.post("/predict/efficientnet")
 async def predict_efficientnet(file: UploadFile = File(...)):
+    filename = "EfficientNetB0_finetuned_final.keras"
     contents = await file.read()
-    prob = get_model("EfficientNetB0_finetuned_final.keras").predict(preprocess(contents))[0][0]
-    return make_result(prob)
+    prob = get_model(filename).predict(preprocess(contents))[0][0]
+    return make_result(prob, filename)
 
 @app.post("/predict/CNN")
 async def predict_cnn(file: UploadFile = File(...)):
+    filename = "best_tuned_model_f1.keras"
     contents = await file.read()
-    prob = get_model("best_tuned_model_f1.keras").predict(preprocess(contents))[0][0]
-    return make_result(prob)
+    prob = get_model(filename).predict(preprocess(contents))[0][0]
+    return make_result(prob, filename)
 
 @app.post("/predict/resnetv2")
 async def predict_resnetv2(file: UploadFile = File(...)):
+    filename = "ResNet50V2_bestversion.keras"
     contents = await file.read()
-    prob = get_model("ResNet50V2_bestversion.keras").predict(preprocess(contents))[0][0]
-    return make_result(prob)
+    prob = get_model(filename).predict(preprocess(contents))[0][0]
+    return make_result(prob, filename)
